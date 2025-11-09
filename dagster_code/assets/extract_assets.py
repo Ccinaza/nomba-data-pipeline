@@ -1,4 +1,4 @@
-from dagster import asset, AssetExecutionContext, Output, MetadataValue
+from dagster import asset, AssetExecutionContext, Output
 from ..clickhouse_load_tool.mongo_loader import MongoToClickhouseLoader
 from ..clickhouse_load_tool.postgres_loader import PostgresToClickhouseLoader
 from ..resources.config import (
