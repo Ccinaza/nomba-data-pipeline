@@ -283,48 +283,37 @@ marts/                        # Business logic
 
 ### What It Does
 
-The CI/CD pipeline runs **static checks** on every push:
+The CI/CD pipeline runs on every push or pull request to main and performs **static checks** only:
 ```yaml
 1. **Code Quality**
-   - Python linting (ruff)
-   - Code formatting (black)
+   - Python linting using `ruff`
+   - Code formatting check using `black`
    
 2. **dbt Validation**
-   - Model compilation (syntax check)
-   - Dependency resolution
-   
-3. **Configuration**
-   - docker-compose validation
-```
+   - Validates dbt project structure with dbt debug
+   - Lists dbt models and macros (dbt list)
+   - No actual database connections are made; mock credentials are used
 
-### What It Doesn't Do
-
-- Run actual data pipeline (requires infrastructure)
-- Connect to databases
-- Execute transformations
-
-**Rationale:** Assessment focuses on pipeline logic and CDC implementation. Full integration testing would require cloud resources and is beyond scope.
+Note: The CI workflow does not run the data pipeline or connect to Postgres, MongoDB, ClickHouse, or MinIO. Its goal is to ensure code quality, dbt project integrity, and basic structure correctness.
 
 ### Running Locally
 ```bash
-# Lint code
-ruff check dagster_code/
-black --check dagster_code/
+# Lint Python code
+ruff check dagster_code/ --exclude dagster_code/clickhouse_load_tool/
+black --check dagster_code/ --exclude dagster_code/clickhouse_load_tool/
 
-# Validate dbt
+# Validate dbt project structure
 cd dbt_project/nomba_dbt
-dbt compile --profiles-dir .
-
-# Validate Docker config
-docker compose config
+dbt debug --profiles-dir .
+dbt list --profiles-dir .
 ```
 
 ### Production Considerations
 In a production environment, I would add:
-- Integration tests with test databases
-- Automated deployment to staging/prod
-- Data quality tests execution
-- Performance benchmarking
+- Integration tests with live databases
+- Execution of dbt models and data tests
+- Automated deployment to staging/production
+- Performance benchmarking and monitoring
 
 ---
 
@@ -449,20 +438,6 @@ FROM nomba.raw_plans
 "
 ```
 
-## CI/CD
-
-GitHub Actions runs on every PR:
-
-1. **Lint:** Python code style checks (ruff, black)
-2. **Compile:** dbt model compilation
-3. **Validate:** Docker compose configuration
-```bash
-# Run locally
-ruff check dagster_code/
-black --check dagster_code/
-cd dbt_project/nomba_dbt && dbt compile
-```
-
 ## Configuration
 
 ### Service Ports
@@ -488,7 +463,7 @@ See .env.example for all configuration options
 - Transactions: ~500ms (3M rows, partitioned)
 
 
-##  Design Decisions
+##  Other Design Decisions
 
 ### Why MinIO?
 
