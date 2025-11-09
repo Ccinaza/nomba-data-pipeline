@@ -1,0 +1,62 @@
+
+sources:
+  - name: nomba
+    description: "Raw data sources ingested from MongoDB and Postgres into ClickHouse"
+    schema: nomba
+
+    tables:
+      - name: raw_users
+        description: "Raw user collection from MongoDB containing basic customer details"
+        columns:
+          - name: _id
+            description: "Unique MongoDB document ID (primary key for the collection)"
+          - name: uid
+            description: "User identifier used across systems (user_id)"
+          - name: firstName
+            description: "User's first name"
+          - name: lastName
+            description: "User's last name"
+          - name: occupation
+            description: "User's occupation"
+          - name: state
+            description: "User's state of residence"
+
+      - name: raw_plans
+        description: "Customer savings plan information"
+        columns:
+          - name: plan_id
+            description: "Unique plan ID (primary key)"
+          - name: product_type
+            description: "Type of savings product; foreign key to savings_product"
+          - name: customer_uid
+            description: "User ID of the customer owning the plan (links to user.uid)"
+          - name: amount
+            description: "Total plan amount"
+          - name: frequency
+            description: "Frequency of saving (daily, weekly, monthly)"
+          - name: start_date
+            description: "Date the plan started"
+          - name: end_date
+            description: "Date the plan ended or will end"
+
+      - name: raw_savings_transactions
+        description: "Buy/sell transactions for savings plans"
+        columns:
+          - name: txn_id
+            description: "Unique transaction ID (primary key)"
+          - name: plan_id
+            description: "Foreign key to savings_plan.plan_id"
+          - name: amount
+            description: "Transaction amount"
+          - name: currency
+            description: "Transaction currency"
+          - name: side
+            description: "Transaction type: buy or sell"
+          - name: rate
+            description: "Exchange rate at transaction time"
+          - name: txn_timestamp
+            description: "Transaction timestamp"
+          - name: updated_at
+            description: "Last updated timestamp"
+          - name: deleted_at
+            description: "Soft delete timestamp (nullable)"

@@ -1,0 +1,68 @@
+name: Nomba Data Pipeline CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install ruff black
+          pip install dbt-clickhouse
+      
+      - name: Lint Python code
+        run: |
+          ruff check dagster_code/ --exclude dagster_code/clickhouse_load_tool/
+          black --check dagster_code/ --exclude dagster_code/clickhouse_load_tool/
+      
+      - name: Compile dbt models
+        run: |
+          cd dbt_project/nomba_dbt
+          dbt deps
+          dbt compile --profiles-dir .
+      
+      - name: Run dbt tests (dry-run)
+        run: |
+          cd dbt_project/nomba_dbt
+          dbt parse --profiles-dir .
+      
+      - name: Validate docker-compose
+        run: |
+          docker compose config
+
+  dbt-checks:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install dbt
+        run: |
+          pip install dbt-clickhouse
+      
+      - name: Check dbt project structure
+        run: |
+          cd dbt_project/nomba_dbt
+          dbt debug --profiles-dir . || true
+          dbt list --profiles-dir . || true

@@ -1,0 +1,118 @@
+
+models:
+  - name: dim_users
+    description: "Dimension table containing the most recent snapshot of user profile information. Built from stg_users with one record per user_id representing the latest state."
+    columns:
+      - name: user_id
+        description: "Primary key representing a unique user."
+        tests:
+          - unique
+          - not_null
+
+      - name: full_name
+        description: "Concatenation of first_name and last_name for easy display and reporting."
+
+      - name: first_name
+        description: "User's first name."
+        tests:
+          - not_null
+
+      - name: last_name
+        description: "User's last name."
+        tests:
+          - not_null
+
+      - name: occupation
+        description: "User's occupation at the time of the latest snapshot."
+
+      - name: state
+        description: "State of residence for the user."
+
+      - name: last_updated_date
+        description: "The most recent snapshot_date when user data was extracted from MongoDB."
+
+
+  - name: dim_savings_plan
+    description: "Dimension table describing active and historical savings plans owned by users. Enriched with user information and cleaned frequency data."
+    columns:
+      - name: plan_id
+        description: "Primary key identifying a unique savings plan."
+        tests:
+          - unique
+          - not_null
+
+      - name: user_id
+        description: "Foreign key referencing the user who owns this savings plan."
+        tests:
+          - not_null
+
+      - name: plan_amount
+        description: "Total target or principal amount associated with the savings plan."
+        tests:
+          - not_null
+
+      - name: customer_state
+        description: "State of residence or registration for the user."
+
+      - name: customer_name
+        description: "Name of residence or registration for the user."
+
+      - name: frequency
+        description: "Frequency of savings contributions (daily, weekly, monthly)."
+
+      - name: start_date
+        description: "Date when the savings plan became active."
+
+      - name: end_date
+        description: "Planned end or maturity date for the savings plan."
+
+      - name: created_at
+        description: "Timestamp when the savings plan was created."
+
+      - name: updated_at
+        description: "Timestamp for the latest update to the plan record."
+
+
+  - name: fact_savings_transaction
+    description: "Fact table capturing all monetary transactions related to user savings plans. Joined with dim_savings_plan and dim_users for analysis of user behavior and savings performance."
+    columns:
+      - name: transaction_id
+        description: "Unique transaction identifier (primary key)."
+        tests:
+          - not_null
+
+      - name: plan_id
+        description: "Foreign key referencing the associated savings plan."
+        tests:
+          - not_null
+
+      - name: user_id
+        description: "Foreign key referencing the user who owns the plan involved in this transaction."
+        tests:
+          - not_null
+
+      - name: amount
+        description: "Transaction amount (deposit or withdrawal)."
+        tests:
+          - not_null
+
+      - name: currency
+        description: "Currency in which the transaction was executed (e.g., NGN, USD)."
+
+      - name: side
+        description: "Transaction type: 'buy' for deposits, 'sell' for withdrawals."
+
+      - name: rate
+        description: "Exchange rate applied at transaction time (if applicable)."
+
+      - name: created_at
+        description: "Timestamp when the transaction was created."
+
+      - name: updated_at
+        description: "Timestamp for the most recent update to this record."
+
+      - name: deleted_at
+        description: "Soft-delete timestamp (null if active)."
+
+
+

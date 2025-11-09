@@ -1,0 +1,14 @@
+nomba_dbt:
+  target: dev
+  outputs:
+    dev:
+      type: clickhouse
+      schema: "{{ env_var('NOMBA_DBT_DEV_SCHEMA') }}"
+      job_execution_timeout_seconds: 300
+      host: "{{ env_var('CLICKHOUSE_HOST') }}"
+      port: "{{ env_var('CLICKHOUSE_PORT') | as_number }}"
+      user: "{{ env_var('NOMBA_DBT_DEV_USER') }}"
+      password: "{{ env_var('NOMBA_DBT_DEV_USER_PASSWORD') }}"
+      secure: false
+      verify: false
+      create_database: false

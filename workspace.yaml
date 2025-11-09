@@ -1,0 +1,6 @@
+load_from:
+  - grpc_server:
+      host: dagster_code_server
+      port: 4000
+      location_name: "nomba_pipeline"
+      

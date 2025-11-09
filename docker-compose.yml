@@ -1,0 +1,221 @@
+services:
+  # MongoDB (Source)
+  mongodb:
+    image: mongo:7.0
+    container_name: nomba-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: nomba
+    volumes:
+      - ./setup/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+      - mongodb_data:/data/db
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/nomba --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nomba-network
+
+  # PostgreSQL (Source)
+  postgres:
+    image: postgres:16
+    container_name: nomba-postgres
+    ports:
+      - "5434:5432"
+    environment:
+      POSTGRES_USER: nomba_user
+      POSTGRES_PASSWORD: nomba_pass
+      POSTGRES_DB: nomba
+    volumes:
+      - ./setup/init-postgres.sql:/docker-entrypoint-initdb.d/init-postgres.sql:ro
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nomba_user -d nomba"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nomba-network
+
+  # ClickHouse (Target Warehouse)
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    container_name: nomba-clickhouse
+    ports:
+      - "8124:8123"
+      - "9002:9000"
+    environment:
+      CLICKHOUSE_DB: nomba
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: nomba123
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    networks:
+      - nomba-network
+
+  # Dagster (Orchestration)
+  dagster_postgres:
+    image: postgres:13
+    container_name: dagster_postgres
+    environment:
+      POSTGRES_USER: dagster
+      POSTGRES_PASSWORD: dagster
+      POSTGRES_DB: dagster
+    ports:
+      - "5433:5432"  # Avoid conflict with main Postgres
+    volumes:
+      - dagster_postgres_data:/var/lib/postgresql/data
+    networks:
+      - nomba-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dagster -d dagster"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  dagster_code_server:
+    build:
+      context: .
+      dockerfile: Dockerfile.dagster
+    container_name: dagster_code_server
+    image: nomba_dagster_code_image
+    command: >
+      dagster code-server start
+      -h 0.0.0.0
+      -p 4000
+      -m dagster_code.definitions
+    ports:
+      - "4000:4000"
+    env_file:
+      - .env
+    environment:
+      DAGSTER_POSTGRES_USER: dagster
+      DAGSTER_POSTGRES_PASSWORD: dagster
+      DAGSTER_POSTGRES_HOST: dagster_postgres
+      DAGSTER_POSTGRES_DB: dagster
+      DAGSTER_CURRENT_IMAGE: nomba_dagster_code_image
+    volumes:
+      - ./dagster_code:/opt/dagster/app/dagster_code:ro
+      - ./dbt_project:/opt/dagster/app/dbt_project
+      - dbt_artifacts:/opt/dagster/app/dbt_project/nomba_dbt/target
+    healthcheck:
+      test: ["CMD", "dagster", "api", "grpc-health-check", "-p", "4000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - nomba-network
+    depends_on:
+      dagster_postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  dagster_webserver:
+    build:
+      context: .
+      dockerfile: Dockerfile.dagster
+    container_name: dagster_webserver
+    image: nomba_dagster_code_image
+    command: >
+      dagster-webserver
+      -h 0.0.0.0
+      -p 3000
+      -w workspace.yaml
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      DAGSTER_HOME: /opt/dagster/app
+      DAGSTER_POSTGRES_USER: dagster
+      DAGSTER_POSTGRES_PASSWORD: dagster
+      DAGSTER_POSTGRES_HOST: dagster_postgres
+      DAGSTER_POSTGRES_DB: dagster
+    volumes:
+      - ./workspace.yaml:/opt/dagster/app/workspace.yaml
+      - ./dagster.yaml:/opt/dagster/app/dagster.yaml
+      - ./dagster_code:/opt/dagster/app/dagster_code
+    depends_on:
+      dagster_postgres:
+        condition: service_healthy
+      dagster_code_server:
+        condition: service_healthy
+    networks:
+      - nomba-network
+    restart: unless-stopped
+
+  dagster_daemon:
+      build:
+        context: .
+        dockerfile: Dockerfile.dagster
+      container_name: dagster_daemon
+      image: nomba_dagster_code_image
+      command: dagster-daemon run
+      env_file:
+        - .env
+      environment:
+        DAGSTER_HOME: /opt/dagster/app
+        DAGSTER_POSTGRES_USER: dagster
+        DAGSTER_POSTGRES_PASSWORD: dagster
+        DAGSTER_POSTGRES_HOST: dagster_postgres
+        DAGSTER_POSTGRES_DB: dagster
+      volumes:
+        - ./workspace.yaml:/opt/dagster/app/workspace.yaml
+        - ./dagster.yaml:/opt/dagster/app/dagster.yaml
+        - /var/run/docker.sock:/var/run/docker.sock
+      depends_on:
+        dagster_postgres:
+          condition: service_healthy
+        dagster_code_server:
+          condition: service_healthy
+      networks:
+        - nomba-network
+      restart: on-failure
+
+  # MinIO (Object Storage)
+  minio:
+    image: minio/minio:latest
+    container_name: nomba-minio
+    ports:
+      - "9003:9000"  # API
+      - "9004:9001"  # Console
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - nomba-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  nomba-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
+  postgres_data:
+  clickhouse_data:
+  dagster_postgres_data:
+  minio_data:
+  dbt_artifacts:

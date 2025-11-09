@@ -1,0 +1,105 @@
+version: 2
+
+models:
+  - name: stg_users
+    description: "Cleaned and standardized user data sourced from MongoDB users collection. Contains essential customer demographic and profile information."
+    columns:
+      - name: user_table_id
+        description: "The primary key for this table derived from MongoDB _id field."
+        tests:
+          - unique
+          - not_null
+
+      - name: user_id
+        description: "Primary identifier for the user, derived from MongoDB _Uid field."
+        tests:
+          - unique
+          - not_null
+
+      - name: first_name
+        description: "User's given (first) name."
+        tests:
+          - not_null
+
+      - name: last_name
+        description: "User's family (last) name."
+        tests:
+          - not_null
+
+      - name: occupation
+        description: "The user's occupation or job title as recorded during registration or onboarding."
+        tests:
+          - not_null
+
+      - name: state
+        description: "State of residence or registration for the user."
+        tests:
+          - not_null
+
+
+  - name: stg_savings_plan
+    description: "Normalized representation of customer savings plans, sourced from Postgres. Each record represents an individual savings product subscribed to by a user."
+    columns:
+      - name: plan_id
+        description: "Unique identifier for each savings plan (primary key)."
+        tests:
+          - unique
+          - not_null
+
+      - name: user_id
+        description: "Foreign key referencing the user who owns the savings plan."
+        tests:
+          - not_null
+
+      - name: amount
+        description: "The total amount allocated or targeted for the savings plan."
+
+      - name: frequency
+        description: "Frequency at which savings contributions are made (e.g. daily, weekly, monthly)."
+
+      - name: start_date
+        description: "Date when the savings plan became active."
+
+      - name: end_date
+        description: "Date when the savings plan is scheduled to end or mature."
+
+      - name: created_at
+        description: "Timestamp indicating when the savings plan record was initially created."
+
+      - name: updated_at
+        description: "Timestamp indicating when the savings plan record was last updated, used for CDC logic."
+
+
+  - name: stg_savings_transaction
+    description: "Processed savings transaction data from Postgres. Each record represents a buy (deposit) or sell (withdrawal) action related to a savings plan."
+    columns:
+      - name: transaction_id
+        description: "Unique transaction identifier (primary key). Derived from Postgres txn_id field."
+        tests:
+          - not_null
+
+      - name: plan_id
+        description: "Foreign key referencing the savings plan associated with this transaction."
+        tests:
+          - not_null
+
+      - name: amount
+        description: "The amount of money involved in the transaction."
+
+      - name: currency
+        description: "Currency in which the transaction occurred (e.g., NGN, USD)."
+
+      - name: side
+        description: "Type of transaction — either 'buy' (deposit) or 'sell' (withdrawal)."
+
+      - name: rate
+        description: "Exchange rate applied at the time of the transaction, if applicable."
+
+      - name: created_at
+        description: "Exact timestamp when the transaction was initiated or executed. Derived from Postgres txn_timestamp"
+
+      - name: updated_at
+        description: "Timestamp for the most recent update to this record, used for incremental loads."
+
+      - name: deleted_at
+        description: "Timestamp marking when a record was soft-deleted, if applicable (null if active)."
