@@ -9,6 +9,15 @@ on:
 jobs:
   lint-and-test:
     runs-on: ubuntu-latest
+    env:
+      NOMBA_DBT_DEV_SCHEMA: "nomba_dev"
+      NOMBA_DBT_DEV_USER: "gamma"
+      NOMBA_DBT_DEV_USER_PASSWORD: "aer2DCCpt1nf"
+      CLICKHOUSE_HOST: "localhost"
+      CLICKHOUSE_PORT: "8123"
+      CLICKHOUSE_DB: "nomba"
+      CLICKHOUSE_USER: "default"
+      CLICKHOUSE_PASSWORD: "nomba123"
     
     steps:
       - name: Checkout code
@@ -47,6 +56,15 @@ jobs:
 
   dbt-checks:
     runs-on: ubuntu-latest
+    env:
+      NOMBA_DBT_DEV_SCHEMA: "nomba_dev"
+      NOMBA_DBT_DEV_USER: "gamma"
+      NOMBA_DBT_DEV_USER_PASSWORD: "aer2DCCpt1nf"
+      CLICKHOUSE_HOST: "localhost"
+      CLICKHOUSE_PORT: "8123"
+      CLICKHOUSE_DB: "nomba"
+      CLICKHOUSE_USER: "default"
+      CLICKHOUSE_PASSWORD: "nomba123"
     
     steps:
       - name: Checkout code
