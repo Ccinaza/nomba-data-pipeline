@@ -293,6 +293,7 @@ The CI/CD pipeline runs on every push or pull request to main and performs **sta
    - Validates dbt project structure with dbt debug
    - Lists dbt models and macros (dbt list)
    - No actual database connections are made; mock credentials are used
+```
 
 Note: The CI workflow does not run the data pipeline or connect to Postgres, MongoDB, ClickHouse, or MinIO. Its goal is to ensure code quality, dbt project integrity, and basic structure correctness.
 
@@ -496,8 +497,4 @@ See .env.example for all configuration options
 
 ## Author
 
-- Blessing Angus
-
-##  License
-
-MIT
+Blessing Angus - [Email](blangus.c@gmail.com)

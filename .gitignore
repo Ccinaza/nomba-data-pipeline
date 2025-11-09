@@ -1,3 +1,48 @@
+# Environment variables (CRITICAL - never commit!)
 .env
-nomba/
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# dbt
+dbt_project/nomba_dbt/target/
+dbt_project/nomba_dbt/dbt_packages/
+dbt_project/nomba_dbt/logs/
+dbt_project/nomba_dbt/.user.yml
+
+# Dagster
+.dagster/
+dagster_home/
+
+# Docker
+docker-compose.override.yml
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data files (if you generated locally)
+*.csv
+*.json
+*.parquet
+setup/data/
+
+# Logs
+*.log
 logs/
