@@ -40,49 +40,13 @@ jobs:
           ruff check dagster_code/ --exclude dagster_code/clickhouse_load_tool/
           black --check dagster_code/ --exclude dagster_code/clickhouse_load_tool/
       
-      - name: Compile dbt models
+      - name: Compile and Parse dbt models (syntax check)
         run: |
           cd dbt_project/nomba_dbt
           dbt deps
-          dbt compile --profiles-dir .
-      
-      - name: Run dbt tests (dry-run)
-        run: |
-          cd dbt_project/nomba_dbt
-          dbt parse --profiles-dir .
+          dbt compile --profiles-dir . --no-partial-parse
+          dbt compile --profiles-dir . --no-partial-parse
       
       - name: Validate docker-compose
         run: |
           docker compose config
-
-  dbt-checks:
-    runs-on: ubuntu-latest
-    env:
-      # Same mock credentials
-      NOMBA_DBT_DEV_SCHEMA: "nomba_dev"
-      NOMBA_DBT_DEV_USER: "ci_user"
-      NOMBA_DBT_DEV_USER_PASSWORD: "ci_password"
-      CLICKHOUSE_HOST: "localhost"
-      CLICKHOUSE_PORT: "8123"
-      CLICKHOUSE_DB: "nomba"
-      CLICKHOUSE_USER: "default"
-      CLICKHOUSE_PASSWORD: "ci_password"
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-      
-      - name: Install dbt
-        run: |
-          pip install dbt-clickhouse
-      
-      - name: Check dbt project structure
-        run: |
-          cd dbt_project/nomba_dbt
-          dbt debug --profiles-dir . || true
-          dbt list --profiles-dir . || true
