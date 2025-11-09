@@ -7,80 +7,139 @@ on:
     branches: [main]
 
 jobs:
-  lint-and-test:
+  lint-python:
+    name: Lint Python Code
     runs-on: ubuntu-latest
-    env:
-      NOMBA_DBT_DEV_SCHEMA: "nomba_dev"
-      NOMBA_DBT_DEV_USER: "gamma"
-      NOMBA_DBT_DEV_USER_PASSWORD: "aer2DCCpt1nf"
-      CLICKHOUSE_HOST: "localhost"
-      CLICKHOUSE_PORT: "8123"
-      CLICKHOUSE_DB: "nomba"
-      CLICKHOUSE_USER: "default"
-      CLICKHOUSE_PASSWORD: "nomba123"
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          cache: 'pip'
       
-      - name: Install dependencies
+      - name: Install linting tools
         run: |
           pip install --upgrade pip
           pip install ruff black
-          pip install dbt-clickhouse
       
-      - name: Lint Python code
+      - name: Run ruff linter
         run: |
           ruff check dagster_code/ --exclude dagster_code/clickhouse_load_tool/
+        continue-on-error: false
+      
+      - name: Run black formatter check
+        run: |
           black --check dagster_code/ --exclude dagster_code/clickhouse_load_tool/
-      
-      - name: Compile dbt models
-        run: |
-          cd dbt_project/nomba_dbt
-          dbt deps
-          dbt compile --profiles-dir .
-      
-      - name: Run dbt tests (dry-run)
-        run: |
-          cd dbt_project/nomba_dbt
-          dbt parse --profiles-dir .
-      
-      - name: Validate docker-compose
-        run: |
-          docker compose config
+        continue-on-error: false
 
-  dbt-checks:
+  validate-dbt:
+    name: Validate dbt Project
     runs-on: ubuntu-latest
-    env:
-      NOMBA_DBT_DEV_SCHEMA: "nomba_dev"
-      NOMBA_DBT_DEV_USER: "gamma"
-      NOMBA_DBT_DEV_USER_PASSWORD: "aer2DCCpt1nf"
-      CLICKHOUSE_HOST: "localhost"
-      CLICKHOUSE_PORT: "8123"
-      CLICKHOUSE_DB: "nomba"
-      CLICKHOUSE_USER: "default"
-      CLICKHOUSE_PASSWORD: "nomba123"
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          cache: 'pip'
       
-      - name: Install dbt
+      - name: Install dbt-clickhouse
         run: |
+          pip install --upgrade pip
           pip install dbt-clickhouse
       
-      - name: Check dbt project structure
+      - name: Install dbt dependencies
+        working-directory: dbt_project/nomba_dbt
+        run: dbt deps --profiles-dir .
+      
+      - name: Compile dbt models (syntax check)
+        working-directory: dbt_project/nomba_dbt
+        env:
+          # Mock connection details (won't connect, just compile)
+          NOMBA_DBT_DEV_SCHEMA: "nomba_dev"
+          NOMBA_DBT_DEV_USER: "ci_user"
+          NOMBA_DBT_DEV_USER_PASSWORD: "mock_password"
+          CLICKHOUSE_HOST: "localhost"
+          CLICKHOUSE_PORT: "8123"
+          CLICKHOUSE_DB: "nomba"
+          CLICKHOUSE_USER: "default"
+          CLICKHOUSE_PASSWORD: "mock_password"
         run: |
-          cd dbt_project/nomba_dbt
-          dbt debug --profiles-dir . || true
-          dbt list --profiles-dir . || true
+          dbt compile --profiles-dir . --target dev
+      
+      - name: Parse dbt project (validation)
+        working-directory: dbt_project/nomba_dbt
+        env:
+          NOMBA_DBT_DEV_SCHEMA: "nomba_dev"
+          NOMBA_DBT_DEV_USER: "ci_user"
+          NOMBA_DBT_DEV_USER_PASSWORD: "mock_password"
+          CLICKHOUSE_HOST: "localhost"
+          CLICKHOUSE_PORT: "8123"
+          CLICKHOUSE_DB: "nomba"
+          CLICKHOUSE_USER: "default"
+          CLICKHOUSE_PASSWORD: "mock_password"
+        run: |
+          dbt parse --profiles-dir . --target dev
+      
+      - name: List dbt models (structure check)
+        working-directory: dbt_project/nomba_dbt
+        env:
+          NOMBA_DBT_DEV_SCHEMA: "nomba_dev"
+          NOMBA_DBT_DEV_USER: "ci_user"
+          NOMBA_DBT_DEV_USER_PASSWORD: "mock_password"
+          CLICKHOUSE_HOST: "localhost"
+          CLICKHOUSE_PORT: "8123"
+          CLICKHOUSE_DB: "nomba"
+          CLICKHOUSE_USER: "default"
+          CLICKHOUSE_PASSWORD: "mock_password"
+        run: |
+          dbt list --profiles-dir . --target dev
+
+  validate-docker:
+    name: Validate Docker Configuration
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Validate docker-compose syntax
+        run: docker compose config --quiet
+      
+      - name: Check for docker-compose errors
+        run: |
+          if docker compose config > /dev/null 2>&1; then
+            echo " docker-compose.yml is valid"
+          else
+            echo " docker-compose.yml has errors"
+            exit 1
+          fi
+
+  summary:
+    name: CI Summary
+    runs-on: ubuntu-latest
+    needs: [lint-python, validate-dbt, validate-docker]
+    if: always()
+    
+    steps:
+      - name: Check all jobs status
+        run: |
+          echo "Lint Python: ${{ needs.lint-python.result }}"
+          echo "Validate dbt: ${{ needs.validate-dbt.result }}"
+          echo "Validate Docker: ${{ needs.validate-docker.result }}"
+          
+          if [[ "${{ needs.lint-python.result }}" != "success" ]] || \
+             [[ "${{ needs.validate-dbt.result }}" != "success" ]] || \
+             [[ "${{ needs.validate-docker.result }}" != "success" ]]; then
+            echo " CI checks failed"
+            exit 1
+          else
+            echo "All CI checks passed"
+          fi
