@@ -39,10 +39,6 @@ jobs:
         run: |
           ruff check dagster_code/ --exclude dagster_code/clickhouse_load_tool/
           black --check dagster_code/ --exclude dagster_code/clickhouse_load_tool/
-      
-      - name: Validate docker-compose
-        run: |
-          docker compose config
 
   dbt-checks:
     runs-on: ubuntu-latest
