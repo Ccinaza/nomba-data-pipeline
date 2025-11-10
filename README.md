@@ -401,7 +401,7 @@ python setup/generate_data.py
 
 ### 5. Run Pipeline
 
-**Dagster UI:** http://localhost:3000
+**Dagster UI:** http://localhost:3001
 
 1. Materialize extraction assets:
    - `raw_users`
@@ -442,7 +442,8 @@ FROM nomba.raw_plans
 ## Configuration
 
 ### Service Ports
-- **Dagster UI:** http://localhost:3000
+- **Dagster UI:** http://localhost:3001
+- **PeerDB UI:** http://localhost:9900
 - **MinIO Console:** http://localhost:9004
 - **ClickHouse:** http://localhost:8124/play
 - **PostgreSQL:** localhost:5434

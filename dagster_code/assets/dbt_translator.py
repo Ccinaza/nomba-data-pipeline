@@ -15,7 +15,7 @@ class MultiProjectDbtTranslator(DagsterDbtTranslator):
 
         # Check if we have at least 1 part (project name)
         if len(fqn) >= 1:
-            project_name = fqn[0]  # First part: 'ecommerce_dbt' or 'pillar_dbt'
+            project_name = fqn[0]  # First part: 'nomba_dbt' or 'pillar_dbt'
 
             # Clean up project names for nicer display in UI
             # Remove '_dbt' suffix

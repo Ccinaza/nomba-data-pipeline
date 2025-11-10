@@ -14,7 +14,11 @@ from ..resources.config import (
     description="Extract users from MongoDB (snapshot) and load to ClickHouse",
 )
 def raw_users(context: AssetExecutionContext) -> Output:
-    """MongoDB users - Daily snapshot (no updated_at field)"""
+    """
+    MongoDB users - Full daily load.
+    This is the first step - loads all users every day.
+    dbt snapshots will handle the SCD Type 2 logic.
+    """
 
     context.log.info("Initializing MongoDB users pipeline...")
 
@@ -24,31 +28,29 @@ def raw_users(context: AssetExecutionContext) -> Output:
         **MINIO_CONFIG,
         tracking_column="_id",
         upsert_key="_Uid",
-        # derived_column='snapshot_date',
         batch_size=10000,
     )
 
     context.log.info(
-        "Loader initialized. Starting MongoDB users extraction (snapshot mode)..."
+        "Loader initialized. Starting MongoDB users full load extraction ..."
     )
 
     # Extract to S3
     context.log.info("Extracting users from MongoDB to S3...")
 
     s3_key = loader.extract_to_s3(
-        source_table="users", target_table="raw_users", load_type="snapshot"
+        source_table="users", target_table="raw_users", load_type="full"
     )
 
     context.log.info(f"Extracted to S3: {s3_key}")
 
-    # Load to ClickHouse
+    # Load to ClickHouse (truncate + insert all rows)
     context.log.info("Loading users from S3 to ClickHouse...")
     rows_loaded = loader.load_to_clickhouse(
         file_key=s3_key,
         target_table="raw_users",
         source="s3",
-        load_type="snapshot",
-        derived_column="snapshot_date",
+        load_type="full",
     )
 
     context.log.info(f"Loaded {rows_loaded:,} rows to ClickHouse")
@@ -59,7 +61,7 @@ def raw_users(context: AssetExecutionContext) -> Output:
         metadata={
             "rows_loaded": rows_loaded,
             "s3_key": s3_key,
-            "load_type": "snapshot",
+            "load_type": "full",
             "source": "MongoDB",
             "table": "raw_users",
         },

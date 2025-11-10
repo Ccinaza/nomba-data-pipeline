@@ -31,3 +31,4 @@ MINIO_CONFIG = {
     "s3_access_key": os.getenv("MINIO_ACCESS_KEY"),
     "s3_secret_key": os.getenv("MINIO_SECRET_KEY"),
 }
+
