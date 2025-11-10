@@ -39,3 +39,8 @@ models:
     mart:
       +schema: "mart"
       +materialized: incremental
+
+snapshots:
+  nomba_dbt:
+    +schema: snapshots
+    +materialized: snapshot
