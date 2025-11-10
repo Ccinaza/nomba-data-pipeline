@@ -27,7 +27,6 @@ def nomba_dbt_models(context: AssetExecutionContext, dbt_nomba: DbtCliResource):
     context.log.info("Completed dbt build successfully!")
 
 
-
 # from dagster_dbt import dbt_assets, DbtCliResource
 # from dagster import AssetExecutionContext
 # from .dbt_translator import MultiProjectDbtTranslator
