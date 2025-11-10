@@ -149,34 +149,34 @@ query = f"""
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    Source Systems                            │
+│                    Source Systems                           │
 ├─────────────────────────────────────────────────────────────┤
 │  MongoDB: 150K users (no timestamps)                        │
 │  PostgreSQL: 50K plans + 3M transactions (has timestamps)   │
 └─────────────────────────────────────────────────────────────┘
                           ↓
 ┌─────────────────────────────────────────────────────────────┐
-│            Dagster Orchestration Layer                       │
+│            Dagster Orchestration Layer                      │
 ├─────────────────────────────────────────────────────────────┤
-│  Extract Assets:                                             │
-│    • raw_users (full load)                                   │
-│    • raw_savings_plan (incremental)                          │
-│    • raw_savings_transaction (incremental)                   │
-│                                                              │
-│  dbt Assets:                                                 │
-│    • Staging models                                          │
-│    • Snapshots (SCD Type 2)                                  │
-│    • Dimension and fact tables                               │
+│  Extract Assets:                                            │
+│    • raw_users (full load)                                  │
+│    • raw_savings_plan (incremental)                         │
+│    • raw_savings_transaction (incremental)                  │
+│                                                             │
+│  dbt Assets:                                                │
+│    • Staging models                                         │
+│    • Snapshots (SCD Type 2)                                 │
+│    • Dimension and fact tables                              │
 └─────────────────────────────────────────────────────────────┘
                           ↓
 ┌─────────────────────────────────────────────────────────────┐
-│              ClickHouse Data Warehouse                       │
+│              ClickHouse Data Warehouse                      │
 ├─────────────────────────────────────────────────────────────┤
 │  Raw Layer:        raw_users, raw_savings_*                 │
 │  Staging Layer:    stg_users, stg_savings_*                 │
 │  Snapshot Layer:   users_snapshot (SCD Type 2)              │
 │  Mart Layer:       dim_users, dim_savings_plan,             │
-│                    fact_savings_transactions                 │
+│                    fact_savings_transactions                │
 └─────────────────────────────────────────────────────────────┘
 ```
 
